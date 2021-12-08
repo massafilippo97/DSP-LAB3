@@ -1,6 +1,7 @@
 'use strict';
 
 const db = require('../components/db.js');
+var WebSocket = require('../components/websocket');
 
 const links = { 
   tasks: {href: "http://localhost:8080/tasks", methods: ["GET", "POST"]},
@@ -109,3 +110,71 @@ exports.tasksTaskIdAssignedToUserIdPUT = function(taskId,userId) {
   });
 }
 
+
+
+/**
+ * Select a task as the active task
+ *
+ * Input: 
+ * - userId: id of the user who wants to select the task
+ * - taskId: ID of the task to be selected
+ * Output:
+ * - no response expected for this operation
+ * 
+ **/
+ exports.selectTask = function selectTask(userId, taskId) {
+  return new Promise((resolve, reject) => {
+
+    db.serialize(function() {  
+
+      db.run('BEGIN TRANSACTION;');
+      const sql1 = 'SELECT t.id FROM tasks as t WHERE t.id = ?';
+      db.all(sql1, [taskId], function(err, check) {
+          if (err) {
+            db.run('ROLLBACK;')
+            reject(err);
+          } 
+          else if (check.length == 0){
+            db.run('ROLLBACK;')
+            reject(404);
+          } 
+          else {
+            const sql2 = 'SELECT u.name, t.description FROM assignments as a, users as u, tasks as t WHERE a.user = ? AND a.task = ? AND a.user = u.id AND a.task = t.id';
+            db.all(sql2, [userId, taskId], function(err, rows) {
+              if (err) {
+                  db.run('ROLLBACK;')
+                  reject(err);
+              } else {
+                const sql3 = 'UPDATE assignments SET active = 0 WHERE user = ?';
+                db.run(sql3, [userId], function(err) {
+                  if (err) {
+                    db.run('ROLLBACK;')
+                    reject(err);
+                  } else {
+                    const sql4 = 'UPDATE assignments SET active = 1 WHERE user = ? AND task = ?';
+                    db.run(sql4, [userId, taskId], function(err) {
+                      if (err) {
+                        db.run('ROLLBACK;')
+                        reject(err);
+                      } else if (this.changes == 0) {
+                        db.run('ROLLBACK;')
+                        reject(403);
+                      } else {
+                        db.run('COMMIT TRANSACTION');
+                        //inform the clients that the user selected a different task where they are working on
+                        var updateMessage = { typeMessage: 'update', userId: parseInt(userId), userName: rows[0].name, taskId: parseInt(taskId), taskName: rows[0].description };
+                        WebSocket.sendAllClients(updateMessage);
+                        WebSocket.saveMessage(userId, { typeMessage: 'login', userId: parseInt(userId), userName: rows[0].name, taskId: parseInt(taskId), taskName: rows[0].description });
+            
+                        resolve();
+                      }
+                    })
+                  }
+                })
+              }
+          })
+        }
+      })
+    });
+  });
+}

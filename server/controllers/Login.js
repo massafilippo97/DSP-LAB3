@@ -1,10 +1,8 @@
 'use strict';
 
-var utils = require('../utils/writer.js');
-var Login = require('../service/LoginService');
-
-///const passportObjects = require('./passport'); //vedo se serve almeno per inizializzarlo
+var Users = require('../service/UsersService.js');
 const { passport, opts, jwtstrategy } = require('../components/passport.js');
+var WebSocket = require('../components/websocket');
 const jsonwebtoken = require('jsonwebtoken');
  
 module.exports.loginPOST = function loginPOST (req, res, next) { 
@@ -23,25 +21,26 @@ module.exports.loginPOST = function loginPOST (req, res, next) {
             res.send(err);
         }
 
-/*
           //notify all the clients that a user has logged in the service  
-          Users.getActiveTaskUser(user.id)
+          Users.getUserActiveTask(user.id)
           .then((task) => {
             var loginMessage;
-            if(task == undefined) loginMessage = new WSMessage('login', user.id, user.name, undefined, undefined);
-            else loginMessage = new WSMessage('login', user.id, user.name, task.id, task.description);
+            if(task == undefined) 
+              loginMessage = { typeMessage: 'login', userId: user.id, userName: user.name, taskId: undefined, taskName: undefined };
+            else 
+              loginMessage = { typeMessage: 'login', userId: user.id, userName: user.name, taskId: task.id, taskName: task.description }; 
+
             WebSocket.sendAllClients(loginMessage);
             WebSocket.saveMessage(user.id, loginMessage);
-*/
 
-        // generate a signed son web token with the contents of user object and return it in the response
-        //const token = jwt.sign(user, 'your_jwt_secret');
-        //return res.json({user, token});
-      
-        const token = jsonwebtoken.sign({ user: {id : user.id, name: user.name} }, opts.secretOrKey );
-        res.cookie('jwt', token, { httpOnly: true, sameSite: true});
-        return res.json({ id: user.id, name: user.name});
-      });
+            // generate a signed son web token with the contents of user object and return it in the response
+            //const token = jwt.sign(user, 'your_jwt_secret');
+            //return res.json({user, token});
+            const token = jsonwebtoken.sign({ user: {id : user.id, name: user.name} }, opts.secretOrKey );
+            res.cookie('jwt', token, { httpOnly: true, sameSite: true});
+            return res.json({ id: user.id, name: user.name});
+          });
+    });
   })(req, res);
 };
 
@@ -54,9 +53,9 @@ module.exports.logoutPOST = function loginPOST (req, res, next) {
         //      utils.writeJson(res, {errors: [{ 'param': 'Server', 'msg': 'Invalid e-mail' }],}, 404);
           //} else {
             //notify all clients that a user has logged out from the service
-            //var logoutMessage = new WSMessage('logout', user.id, user.name);
-            //WebSocket.sendAllClients(logoutMessage);
-            //WebSocket.deleteMessage(user.id);
+            var logoutMessage = { typeMessage: 'logout', userId: req.user.id, userName: req.user.name, taskId: undefined, taskName: undefined };
+            WebSocket.sendAllClients(logoutMessage);
+            WebSocket.deleteMessage(req.user.id);
             //clear the cookie
             req.logout();
             res.clearCookie('jwt').end();

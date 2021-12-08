@@ -73,3 +73,27 @@ module.exports.tasksTaskIdAssignedToUserIdPUT = async function tasksTaskIdAssign
       res.status(503).json({ error: err}); //riporta l'errore sql generico
   }
 };
+
+
+module.exports.selectTask = function selectTask(req, res, next) {
+  var userId = req.params.userId;
+  var taskId = req.body.id;
+  if(taskId == undefined){
+    utils.writeJson(res, {errors: [{ 'param': 'Server', 'msg': 'Missing taskId query parameter'}],}, 400);
+  }
+  AssignedTasks.selectTask(userId, taskId)
+      .then(function(response) {
+            utils.writeJson(res, response, 204);
+      })
+      .catch(function(response) {
+        if(response == 403){
+          utils.writeJson(res, { errors: [{ 'param': 'Server', 'msg': 'The user is not an assignee of the task' }], }, 403);
+        }
+        else if (response == 404){
+          utils.writeJson(res, { errors: [{ 'param': 'Server', 'msg': 'The task does not exist.' }], }, 404);
+        } 
+        else {
+          utils.writeJson(res, {errors: [{ 'param': 'Server', 'msg': response }],}, 500);
+        }
+      });
+};

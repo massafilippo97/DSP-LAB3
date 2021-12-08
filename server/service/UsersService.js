@@ -82,3 +82,21 @@ exports.usersGET = function() {
       });
     });
 }
+
+
+exports.getUserActiveTask = function(user_id) {
+  return new Promise((resolve, reject) => {
+      const sql = "SELECT t.id, t.description from assignments a , tasks t where a.user = ? and a.active = 1 and a.task = t.id";
+      db.all(sql, [user_id], (err, rows) => {
+          if (err) {
+              reject(err);
+          } else {
+              if (rows.length === 0)
+                   resolve(undefined);
+              else { 
+                  resolve(rows[0]);
+              }
+          }
+      });
+    });
+}

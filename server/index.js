@@ -88,7 +88,7 @@ app.post('/api/logout',passport.authenticate('jwt', {session: false}), LoginCont
 
 app.get('/api/users', passport.authenticate('jwt', { session: false }), UsersController.usersGET);
 app.get('/api/users/:userId', passport.authenticate('jwt', {session: false}), UsersController.usersIdGET);
-//app.put('/api/users/:userId/selection', passport.authenticate('jwt', { session: false }), assignmentController.selectTask);
+app.put('/api/users/:userId/selection', passport.authenticate('jwt', { session: false }), AssignedTasksController.selectTask);
 
 // Initialize the Swagger middleware
 http.createServer(app).listen(serverPort, function () {
