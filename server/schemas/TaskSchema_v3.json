@@ -3,7 +3,7 @@
     "$id": "LAB/TaskSchema.json",
     "title": "Task",
     "description": "JSON Schema for Task objects",
-    "additionalProperties": false,
+    "additionalProperties": true,
     "type": "object",
     "properties": { 
         "id": {"type":"number"},
@@ -15,5 +15,5 @@
         "completed": { "type": "number", "default": "0", "minimum": 0, "maximum": 1},
         "owner":  {"type":"number"}
     },
-    "required": ["id","description"]
+    "required": ["description"]
 }

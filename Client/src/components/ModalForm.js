@@ -43,7 +43,8 @@ const ModalForm = (props) => {
         deadline = dayjs(deadlineDate + "T12:00"); // tasks with no time are due by noon
       }
 
-      const newTask = Object.assign({}, task, { description, important: isImportant, private: isPrivate, deadline} );
+      const newTask = Object.assign({}, task, { description, important: isImportant ? 1 : 0, private: isPrivate ? 1 : 0, deadline} );
+      if(!deadline) delete newTask.deadline;
       if(taskProject != null) newTask.project = taskProject;
 
       onSave(newTask);

@@ -102,24 +102,21 @@ module.exports.tasksTaskIdGET = async function tasksTaskIdGET (req, res, next) {
 };
 
 module.exports.tasksTaskIdMarkTaskPUT = async function tasksTaskIdMarkTaskPUT (req, res, next) {
-  try {
-    const checkOwner = await Tasks.checkTaskOwner(req.params.taskId, req.user.id); //req.user.id, 1
-    if(checkOwner) {
-      const completedValue = await Tasks.checkCompleteValue(req.params.taskId);
-      await Tasks.tasksTaskIdMarkTaskPUT(req.params.taskId, completedValue);
-      res.status(201).end();
-    }
-    else { 
-      throw new Error('403'); //Forbidden
-    }
-  } catch(err) {
-    if(err.message === '403')
-      res.status(403).json({ error: "Forbidden: can't update because you are not the task's owner"});
-    else if(err === "taskId not found")
-      res.status(404).json({ error: "Task Not found: can't update because the inserted task id does not exists"}); 
-    else
-      res.status(503).json({ error: response.message});
-  }
+  Tasks.tasksTaskIdMarkTaskPUT(req.params.taskId, req.user.id)
+  .then(function(response) {
+      utils.writeJson(res, response, 201);
+  })
+  .catch(function(response) {
+      if(response == 403){
+          utils.writeJson(res, { errors: [{ 'param': 'Server', 'msg': 'The user is not an assignee of the task' }], }, 403);
+      }
+      else if (response == 404){
+          utils.writeJson(res, { errors: [{ 'param': 'Server', 'msg': 'The task does not exist.' }], }, 404);
+      }
+      else {
+          utils.writeJson(res, { errors: [{ 'param': 'Server', 'msg': response }], }, 503);
+      }
+  });
 };
 
 module.exports.tasksTaskIdPUT = function tasksTaskIdPUT (req, res, next) {

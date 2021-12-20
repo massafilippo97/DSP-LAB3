@@ -36,7 +36,7 @@ exports.tasksGET = function(user_id, page, size) {
       }
  
       if(size === -1){ 
-        size = rows.length;
+        size = 10;
       }
 
       let totalPages =  Math.ceil(rows.length / size);
@@ -81,7 +81,7 @@ exports.tasksPublicGET = function(page, size) {
       }
  
       if(size === -1){ 
-        size = rows.length;
+        size = 10;
       }
 
       let totalPages =  Math.ceil(rows.length / size);
@@ -145,7 +145,7 @@ exports.tasksAssignedToMeGET = function(user_id, page, size) {
       }
  
       if(size === -1){ 
-        size = rows.length;
+        size = 10;
       }
  
       let totalPages =  Math.ceil(rows.length / size);
@@ -190,7 +190,7 @@ exports.tasksCreatedByMeGET = function(user_id, page, size) {
       }
  
       if(size === -1){ 
-        size = rows.length;
+        size = 10;
       }
 
       let totalPages =  Math.ceil(rows.length / size);
@@ -366,16 +366,34 @@ exports.tasksTaskIdGET = function(taskId, userId) {
  * taskId Long Task id
  * no response value expected for this operation
  **/
-exports.tasksTaskIdMarkTaskPUT = function(taskId, completed) {
+exports.tasksTaskIdMarkTaskPUT = function(taskId, assignee) {
   return new Promise((resolve, reject) => {
-    const sql_query =  "UPDATE tasks SET completed=? WHERE id=?";  
-    db.run(sql_query, [!JSON.parse(completed),taskId], (err, rows)=>{
-      if(err) {
-        reject(err);
-        return;
-      }
-      resolve(null);
-    });
+    const sql1 = "SELECT * FROM tasks t WHERE t.id = ?";
+    db.all(sql1, [taskId], (err, rows) => {
+        if (err)
+            reject(err);
+        else if (rows.length === 0)
+            reject(404);
+        else {
+            const sql2 = "SELECT * FROM assignments a WHERE a.user = ? AND a.task = ?";
+            db.all(sql2, [assignee, taskId], (err, rows2) => {
+                if (err)
+                    reject(err);
+                else if (rows2.length === 0)
+                    reject(403);
+                else {
+                    const sql3 = 'UPDATE tasks SET completed = 1 WHERE id = ?';
+                    db.run(sql3, [taskId], function(err) {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(null);
+                        }
+                    })
+                }
+            })
+        }  
+      });
   });
 }
 

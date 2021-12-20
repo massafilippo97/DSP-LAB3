@@ -16,9 +16,13 @@ function getJson(httpResponsePromise) {
         if (response.ok) {
 
          // always return {} from server, never null or non json, otherwise it will fail
-         response.json()
-            .then( json => resolve(json) )
-            .catch( err => reject({ error: "Cannot parse server response" }))
+         if(response.status !== 201) {
+          response.json()
+              .then( json => resolve(json) )
+              .catch( err => reject({ error: "Cannot parse server response" }))
+         }
+         else
+          resolve();
 
         } else {
           // analyze the cause of error
@@ -113,14 +117,15 @@ async function getAllOwnedTasks() { //ok?
 
 }
 
-function addTask(task) { //ok
+function addTask(task) { //ok 
   return getJson(
     fetch(BASEURL + "/tasks", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...task, completed: false})
+      
+      body: JSON.stringify({ ...task, completed: 0})
     })
   )
 }
@@ -227,12 +232,8 @@ async function getUsers() { //api mancante
 async function assignTask(userId,taskId) {
   return new Promise((resolve, reject) => {
       //let userId = Number( localStorage.getItem("user"))
-      fetch(BASEURL + "/tasks/"+taskId+"/assignees", {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ id: userId, email:localStorage.getItem("email"), name:localStorage.getItem("name")}),
+      fetch(BASEURL + "/tasks/"+taskId+"/assignedTo/"+userId, {
+          method: 'PUT'
       }).then((response) => {
           if (response.ok) {
              resolve(null)
@@ -249,7 +250,7 @@ async function assignTask(userId,taskId) {
 async function removeAssignTask(userId,taskId) {
   return new Promise((resolve, reject) => {
       //let userId = Number( localStorage.getItem("user"))
-      fetch(BASEURL + "/tasks/"+taskId+"/assignees/"+userId, {
+      fetch(BASEURL + "/tasks/"+taskId+"/assignedTo/"+userId, {
           method: 'DELETE'
       }).then((response) => {
           if (response.ok) {
